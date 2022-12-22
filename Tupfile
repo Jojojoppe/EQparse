@@ -1,0 +1,14 @@
+include_rules
+
+src = \
+    src/main.c \
+    src/dynamic_array.c
+
+CFLAGS = -g
+LDFLAGS = -g -L./out
+LDLIBS = 
+
+: foreach $(src) |> !cc |> out/%B.o
+: out/*.o |> !ld |> out/test
+
+.gitignore

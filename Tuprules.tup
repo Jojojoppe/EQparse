@@ -1,0 +1,9 @@
+CC = gcc
+AS = gcc
+LD = gcc
+AR = ar
+
+!cc = |> $(CC) $(CFLAGS) -c -o %o %f |> %B.o
+!as = |> $(AS) $(ASFLAGS) -o %o %f |> %B.o
+!ld = |> $(LD) $(LDFLAGS) -o %o %f $(LDLIBS) |>
+!ar = |> $(AR) -rcs %o %f |>
