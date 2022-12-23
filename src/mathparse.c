@@ -8,7 +8,7 @@ const function_t functions[_FUNCTION_SIZE_] = {
     {"cos", FUNCTION_COS, 1},
     {"tan", FUNCTION_TAN, 1},
     {"step", FUNCTION_STEP, 1},
-    {"int", FUNCTION_INT, 2},
+    {"int", FUNCTION_INT, 1},
     {"ddt", FUNCTION_DDT, 1},
 };
 
@@ -192,7 +192,7 @@ parse_error_e parse(const char * string, size_t len, parserstate_t ** state){
     (*state)->ptok.type = TOKENTYPE_EOF;
 
     // Check for starting with bracket (causes error somehow)
-    if(string[0]=='(') return PARSE_ERROR_STARTSWITHBRACKET;
+    /*if(string[0]=='(') return PARSE_ERROR_STARTSWITHBRACKET;*/
 
     d_array_t funcstack, funcstackargs;
     D_ARRAY_INIT(token_t, &funcstack);
@@ -282,7 +282,7 @@ parse_error_e parse(const char * string, size_t len, parserstate_t ** state){
                 d_array_erase(&funcstackargs, D_ARRAY_LEN(funcstackargs)-1);
             }
             d_array_erase(&(*state)->stack, D_ARRAY_LEN((*state)->stack)-1);
-            if(D_ARRAY_END(token_t, (*state)->stack)->type==TOKENTYPE_FUNCTION){
+            if(D_ARRAY_LEN((*state)->stack)>0 && D_ARRAY_END(token_t, (*state)->stack)->type==TOKENTYPE_FUNCTION){
                 token_t * top = D_ARRAY_END(token_t, (*state)->stack);
                 d_array_insert(&(*state)->output, top);
                 d_array_erase(&(*state)->stack, D_ARRAY_LEN((*state)->stack)-1);

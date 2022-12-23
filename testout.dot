@@ -1,0 +1,17 @@
+digraph{
+root [label="="]
+root_0 [label="out"]
+root -> root_0
+root_1 [label="/"]
+root -> root_1
+root_1_0 [label="-"]
+root_1 -> root_1_0
+root_1_0_0 [label="in"]
+root_1_0 -> root_1_0_0
+root_1_0_1 [label="ddt"]
+root_1_0 -> root_1_0_1
+root_1_0_1_0 [label="out"]
+root_1_0_1 -> root_1_0_1_0
+root_1_1 [label="K"]
+root_1 -> root_1_1
+}
