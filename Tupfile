@@ -1,9 +1,8 @@
 include_rules
 
 src = \
-    src/main.c \
-    src/dynamic_array.c \
-    src/mathparse.c
+    src/test.c \
+    src/stack.c
 
 CFLAGS = -g
 LDFLAGS = -g -L./out
