@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 const function_t functions[_FUNCTION_SIZE_] = {
-    {"sin", FUNCTION_SIN, 1},
-    {"cos", FUNCTION_COS, 1},
-    {"tan", FUNCTION_TAN, 1},
-    {"step", FUNCTION_STEP, 1},
-    {"int", FUNCTION_INT, 1},
-    {"ddt", FUNCTION_DDT, 1},
+    {"sin", FUNCTION_SIN, 1, sin},
+    {"cos", FUNCTION_COS, 1, cos},
+    {"tan", FUNCTION_TAN, 1, tan},
+    {"step", FUNCTION_STEP, 1, NULL},
+    {"int", FUNCTION_INT, 1, NULL},
+    {"ddt", FUNCTION_DDT, 1, NULL},
 };
 
 const operation_t operations[_OPERATION_SIZE_] = {

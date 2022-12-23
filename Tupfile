@@ -7,7 +7,7 @@ src = \
 
 CFLAGS = -g
 LDFLAGS = -g -L./out
-LDLIBS = 
+LDLIBS = -lm
 
 : foreach $(src) |> !cc |> out/%B.o
 : out/*.o |> !ld |> out/test

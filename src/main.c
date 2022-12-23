@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "mathparse.h"
 #include "dynamic_array.h"
@@ -18,6 +19,73 @@ typedef struct{
     parserstate_t * lparser;
     parserstate_t * rparser;
 } equation_t;
+
+double _eq_simplify(astnode_t * node, int * number){
+    if(node->tok.type==TOKENTYPE_OPERATOR){
+        double v;
+        int numberl=0, numberr=0;
+        switch(node->tok.ovalue.op){
+            case OPERATION_MULTIPLY: 
+                v = _eq_simplify(d_array_at(&node->children, 1), &numberl) * _eq_simplify(d_array_at(&node->children, 0), &numberr);
+                break;
+            case OPERATION_DIVIDE: 
+                v = _eq_simplify(d_array_at(&node->children, 1), &numberl) / _eq_simplify(d_array_at(&node->children, 0), &numberr);
+                break;
+            case OPERATION_PLUS: 
+                v = _eq_simplify(d_array_at(&node->children, 1), &numberl) + _eq_simplify(d_array_at(&node->children, 0), &numberr);
+                break;
+            case OPERATION_MINUS: 
+                v = _eq_simplify(d_array_at(&node->children, 1), &numberl) - _eq_simplify(d_array_at(&node->children, 0), &numberr);
+                break;
+            case OPERATION_POW: 
+                v = pow(_eq_simplify(d_array_at(&node->children, 1), &numberl), _eq_simplify(d_array_at(&node->children, 0), &numberr));
+                break;
+            case OPERATION_MOD: 
+                double v1 = _eq_simplify(d_array_at(&node->children, 0), &numberl);
+                double v2 = _eq_simplify(d_array_at(&node->children, 1), &numberr);
+                v = v1>=v2 ? v2 : remainder(v2, v1);
+                v = v<0 ? -v : v;
+                break;
+            default: return 0;
+        }
+        if(numberl && numberr){
+            d_array_deinit(&node->children);
+            node->tok.type = TOKENTYPE_NUMBER;
+            node->tok.dvalue = v;
+        }
+    }
+
+    else if(node->tok.type==TOKENTYPE_FUNCTION){
+        // ONLY USE SINGLE PARAMS
+        if(node->tok.fvalue.arguments==1 && node->tok.fvalue.cfunc!=NULL){
+            double v;
+            int number = 0;
+            v = _eq_simplify(d_array_at(&node->children, 0), &number);
+            if(number){
+                d_array_deinit(&node->children);
+                node->tok.type = TOKENTYPE_NUMBER;
+                double (*cfun)(double) = (double (*)(double))node->tok.fvalue.cfunc;
+                node->tok.dvalue = cfun(v);
+            }
+        }
+    }
+
+    if(node->tok.type==TOKENTYPE_NUMBER){
+        *number = 1;
+        return node->tok.dvalue;
+    }
+
+    for(int k=D_ARRAY_LEN(node->children)-1; k>=0; k--){
+        int number;
+        _eq_simplify(d_array_at(&node->children, k), &number);
+    }
+
+    return 0;
+}
+void equation_simplify(equation_t * eq){
+    int numberr = 0;
+    _eq_simplify(&eq->rightnodes, &numberr);
+}
 
 void _eq_debug_dot(astnode_t * node, FILE * f, char * parent, int i){
     if(node->tok.type==TOKENTYPE_NUMBER){
@@ -136,12 +204,14 @@ int equation_cleanup(equation_t ** eq){
 
 int main(int argc, char ** argv){
 
-    char * diffequation = "out = (in-ddt(out))/K";
+    char * diffequation = "2*x = 15/3";
     equation_t * eq = NULL;
 
     int rval = equation_parse(diffequation, strlen(diffequation), &eq);
     printf("rval = %d\n", rval);
     if(rval!=0) goto cleanup;
+
+    equation_simplify(eq);
 
     equation_debug_dot(eq, "testout.dot");
 

@@ -29,6 +29,7 @@ typedef struct{
     char * name;
     function_e func;
     int arguments;
+    void (*cfunc)();
 } function_t;
 
 typedef enum{
