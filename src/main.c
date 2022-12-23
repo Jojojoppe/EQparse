@@ -8,7 +8,8 @@ int main(int argc, char ** argv){
 
     parserstate_t * state = NULL;
     parse_error_e err;
-    if((err = parse(argv[1], strlen(argv[1]), &state)) != PARSE_ERROR_OK){
+    char * s = "int(sin(t), 5)";
+    if((err = parse(s, strlen(s), &state)) != PARSE_ERROR_OK){
         printf("ERROR: %d\n", err);
         goto cleanup;
     }
@@ -17,7 +18,7 @@ int main(int argc, char ** argv){
         print_token(*tok);
     }
 
-    parser_cleanup(&state);
 cleanup:
+    parser_cleanup(&state);
     return 0;
 }

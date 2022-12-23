@@ -10,6 +10,7 @@ typedef enum{
     TOKENTYPE_BRACKOPEN,
     TOKENTYPE_BRACKCLOSE,
     TOKENTYPE_VARIABLE,
+    TOKENTYPE_COMMA,
     TOKENTYPE_EOF,
     TOKENTYPE_ERROR,
 } tokentype_e;
@@ -19,8 +20,16 @@ typedef enum{
     FUNCTION_COS,
     FUNCTION_TAN,
     FUNCTION_STEP,
+    FUNCTION_INT,
+    FUNCTION_DDT,
     _FUNCTION_SIZE_,
 } function_e;
+
+typedef struct{
+    char * name;
+    function_e func;
+    int arguments;
+} function_t;
 
 typedef enum{
     OPERATION_PLUS = 0,
@@ -48,17 +57,19 @@ typedef struct token_s{
     tokentype_e type;
     union{
         double dvalue;
-        function_e fvalue;
+        function_t fvalue;
         operation_t ovalue;
         char * svalue;
+        int bisfunc;
     };
 } token_t;
 
 typedef struct{
-    char * string;
+    const char * string;
     size_t position;
     d_array_t output;
     d_array_t stack;
+    token_t ptok;
 } parserstate_t;
 
 typedef enum{
@@ -68,11 +79,19 @@ typedef enum{
     PARSE_ERROR_STRINGLENISZERO,
     PARSE_ERROR_STATEISNULL,
     PARSE_ERROR_UNMATCHEDBRACKET,
+    PARSE_ERROR_STARTSWITHBRACKET,
+    PARSE_ERROR_EXPECTEDOPENBRACKED,
+    PARSE_ERROR_UNEXPECTEDCOMMA,
+    PARSE_ERROR_TOOMANYARGS,
+    PARSE_ERROR_TOOLITTLEARGS,
 } parse_error_e;
 
 token_t nexttoken(parserstate_t * state);
 void print_token(token_t t);
 parse_error_e parse(const char * string, size_t len, parserstate_t ** state);
 parse_error_e parser_cleanup(parserstate_t ** state);
+
+extern const function_t functions[_FUNCTION_SIZE_];
+extern const operation_t operations[_OPERATION_SIZE_];
 
 #endif
