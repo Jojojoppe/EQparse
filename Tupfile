@@ -1,8 +1,10 @@
 include_rules
 
 src = \
-    src/test.c \
-    src/stack.c
+    src/general/stack.c \
+    src/general/array.c \
+    src/eqparse.c \
+    src/test.c
 
 CFLAGS = -g
 LDFLAGS = -g -L./out

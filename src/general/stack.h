@@ -21,8 +21,8 @@ enum{
 #define D_STACK_CREATE(T, stack) d_stack_create(stack, sizeof(T))
 #define D_STACK_TOP(T, stack) ((stack)->length>0 ? (T*)(stack)->_end : NULL)
 #define D_STACK_AT(T, stack, i) (i<(stack)->length ? (T*)(stack)->_begin+i : NULL)
-#define D_STACK_BEGIN(T, stack) ((T*)(stack)->_begin))
-#define D_STACK_END(T, stack) ((T*)(stack)->_end))
+#define D_STACK_BEGIN(T, stack) ((T*)(stack)->_begin)
+#define D_STACK_END(T, stack) ((T*)(stack)->_end)
 
 #define D_STACK_FOREACH_BT(T, var, stack) for(T * var=(T*)(stack)->_begin; var<=(T*)(stack)->_end; var++)
 #define D_STACK_FOREACH_TB(T, var, stack) for(T * var=(T*)(stack)->_end; var>=(T*)(stack)->_begin; var--)
