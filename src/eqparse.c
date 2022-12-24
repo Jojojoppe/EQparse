@@ -44,6 +44,12 @@ token_t next_token(eqparse_t * eq){
 
             // Check if start of string
             else if((c>='a' && c<='z') || (c>='A' && c<='Z')){
+                // Check if unary minus is there
+                if(buf[0]=='-'){
+                    eq->position--;
+                    tok.tok = TOKEN_MINUS;
+                    break;
+                }
                 buf[bufpos++] = c;
                 mode = NEXT_TOKEN_MODE_STRING;
                 continue;
@@ -216,7 +222,6 @@ int parse_tokens(eqparse_t * eq){
                 if(op.tok.type == TOKEN_TYPE_OPERATOR || op.tok.type == TOKEN_TYPE_EQUALITY){
                     if(expstack.length<2){
                         eq->token_error = tok;
-                        printf("A\n");
                         err = EQPARSE_ERROR_EXPRESSION;
                         goto parse_tokens_return;
                     }
@@ -272,7 +277,6 @@ int parse_tokens(eqparse_t * eq){
                 if(op.tok.type == TOKEN_TYPE_OPERATOR || op.tok.type == TOKEN_TYPE_EQUALITY){
                     if(expstack.length<2){
                         eq->token_error = tok;
-                        printf("B\n");
                         err = EQPARSE_ERROR_EXPRESSION;
                         goto parse_tokens_return;
                     }
@@ -354,7 +358,6 @@ int parse_tokens(eqparse_t * eq){
         }
         if(op.tok.type == TOKEN_TYPE_OPERATOR || op.tok.type == TOKEN_TYPE_EQUALITY){
             if(expstack.length<2){
-                printf("C\n");
                 eq->token_error = tok;
                 err = EQPARSE_ERROR_EXPRESSION;
                 goto parse_tokens_return;

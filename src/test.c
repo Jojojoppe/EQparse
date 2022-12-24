@@ -3,7 +3,7 @@
 
 int main(int argc, char ** argv){
 
-    char * s = "x = -1+y*-21.3";
+    char * s = "x = pi+y*-3*x";
     int err = EQPARSE_ERROR_OK;
     eqparse_t * eq = eqparse(s, 0, &err);
     if(err==EQPARSE_ERROR_CHARACTER){

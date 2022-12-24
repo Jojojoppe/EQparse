@@ -1,17 +1,21 @@
 digraph{
-root [label="x = -1+y*-21.3"]
+root [label="x = pi+y*-3*x"]
 root0 [label="="]
 root -> root0
 root00 [label="x"]
 root0 -> root00
 root01 [label="+"]
 root0 -> root01
-root010 [label="-1"]
+root010 [label="pi"]
 root01 -> root010
 root011 [label="*"]
 root01 -> root011
-root0110 [label="y"]
+root0110 [label="*"]
 root011 -> root0110
-root0111 [label="-21.300000"]
+root01100 [label="y"]
+root0110 -> root01100
+root01101 [label="-3"]
+root0110 -> root01101
+root0111 [label="x"]
 root011 -> root0111
 }
