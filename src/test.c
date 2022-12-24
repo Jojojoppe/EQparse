@@ -3,9 +3,8 @@
 
 int main(int argc, char ** argv){
 
-    char * s = "pi/(2+4)";
-    /*char * s = "pi/2+4";*/
-    int err;
+    char * s = "ddt(ddt(x))-5*ddt(x) = 15/x";
+    int err = EQPARSE_ERROR_OK;
     eqparse_t * eq = eqparse(s, 0, &err);
     if(err==EQPARSE_ERROR_CHARACTER){
         printf("Unexpected character: %c\n", eq->token_error.cvalue);
@@ -13,9 +12,18 @@ int main(int argc, char ** argv){
         printf("Internal error\n");
     }else if(err==EQPARSE_ERROR_UNMATCHED){
         printf("Unmatched bracked\n");
+    }else if(err==EQPARSE_ERROR_EXPRESSION){
+        printf("Unfinished expression\n");
+    }else if(err==EQPARSE_ERROR_PARAM){
+        printf("Parameter error\n");
+    }else if(err==EQPARSE_ERROR_INVALID){
+        printf("Invalid expression\n");
     }
 
-    debug_print_ast(&eq->AST);
+    if(!err){
+        debug_print_ast(&eq->AST);
+        debug_write_ast(&eq->AST, "testout.dot");
+    }
 
     eqparse_cleanup(eq);
     return 0;

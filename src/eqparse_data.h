@@ -18,11 +18,16 @@ struct eqparse_function_info{
     char * name;
     int arguments;
 };
-#define EQPARSE_FUNCTION_INFO_N 3
+#define EQPARSE_FUNCTION_INFO_N 8
 static const struct eqparse_function_info eqparse_functions[] = {
     {"sin", 1},
     {"cos", 1},
     {"tan", 1},
+    {"log", 1},
+    {"ln", 1},
+    {"sqrt", 1},
+    {"int", 2},
+    {"ddt", 1},
 };
 
 struct eqparse_operator_info{
@@ -31,7 +36,7 @@ struct eqparse_operator_info{
     char c;
     char * s;
 };
-#define EQPARSE_OPERATOR_INFO_N 6
+#define EQPARSE_OPERATOR_INFO_N 7
 static const struct eqparse_operator_info eqparse_operators[] = {
     {TOKEN_PLUS, 2, '+', "add"},
     {TOKEN_MINUS, 2, '-', "sub"},
@@ -39,6 +44,7 @@ static const struct eqparse_operator_info eqparse_operators[] = {
     {TOKEN_DIVIDE, 3, '/', "div"},
     {TOKEN_POWER, 4, '^', "pow"},
     {TOKEN_MODULO, 2, '%', "mod"},
+    {TOKEN_EQUAL, 0, '=', "EQ"},
 };
 
 #endif

@@ -1,11 +1,27 @@
 digraph{
-root [label="="]
-root_0 [label="*"]
-root -> root_0
-root_0_0 [label="2.00"]
-root_0 -> root_0_0
-root_0_1 [label="x"]
-root_0 -> root_0_1
-root_1 [label="5.00"]
-root -> root_1
+root
+root0 [label="="]
+root -> root0
+root00 [label="-"]
+root0 -> root00
+root000 [label="ddt"]
+root00 -> root000
+root0000 [label="ddt"]
+root000 -> root0000
+root00000 [label="x"]
+root0000 -> root00000
+root001 [label="*"]
+root00 -> root001
+root0010 [label="5"]
+root001 -> root0010
+root0011 [label="ddt"]
+root001 -> root0011
+root00110 [label="x"]
+root0011 -> root00110
+root01 [label="/"]
+root0 -> root01
+root010 [label="15"]
+root01 -> root010
+root011 [label="x"]
+root01 -> root011
 }

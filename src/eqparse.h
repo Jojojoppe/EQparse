@@ -5,7 +5,7 @@
 #include "general/stack.h"
 
 typedef enum{
-    TOKEN_DNUMBER,
+    TOKEN_DNUMBER = 0,
     TOKEN_INUMBER,
 
     TOKEN_PLUS,
@@ -15,10 +15,11 @@ typedef enum{
     TOKEN_POWER,
     TOKEN_MODULO,
 
+    TOKEN_EQUAL,
+
     TOKEN_BROPEN,
     TOKEN_BRCLOSE,
     TOKEN_COMMA,
-    TOKEN_EQUAL,
 
     TOKEN_STRING,
 
@@ -29,9 +30,8 @@ typedef enum{
 typedef enum{
     TOKEN_TYPE_VALUE,
     TOKEN_TYPE_OPERATOR,
-    TOKEN_TYPE_UNARY_OPERATOR,
-    TOKEN_TYPE_BINARY_OPERATOR,
     TOKEN_TYPE_FUNCTION,
+    TOKEN_TYPE_EQUALITY,
     TOKEN_TYPE_NULL,
 } token_type_e;
 
@@ -53,9 +53,12 @@ typedef struct{
 
 enum{
     EQPARSE_ERROR_OK=0,
+    EQPARSE_ERROR_PARAM,
     EQPARSE_ERROR_INTERNAL,
     EQPARSE_ERROR_CHARACTER,
     EQPARSE_ERROR_UNMATCHED,
+    EQPARSE_ERROR_EXPRESSION,
+    EQPARSE_ERROR_INVALID,
 };
 
 typedef struct{
@@ -71,6 +74,7 @@ void eqparse_cleanup(eqparse_t * eq);
 
 void debug_print_token(token_t * token);
 void debug_print_ast(ast_t * ast);
+void debug_write_ast(ast_t * ast, const char * file);
 
 #include "eqparse_data.h"
 
