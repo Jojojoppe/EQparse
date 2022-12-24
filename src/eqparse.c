@@ -475,13 +475,16 @@ void _debug_write_ast(ast_t * ast, FILE * f, char * parent, int i){
     }
     free(name);
 }
-void debug_write_ast(ast_t * ast, const char * file){
+void debug_write_ast(ast_t * ast, const char * file, const char * title){
     FILE * f = fopen(file, "w");
     if(!f) return;
-    fprintf(f, "digraph{\nroot\n");
+    fprintf(f, "digraph{\nroot [label=\"%s\"]\n", title);
     _debug_write_ast(ast, f, "root", 0);
     fprintf(f, "}\n");
     fclose(f);
+}
+void debug_write_eq(eqparse_t * eq, const char * file){
+    debug_write_ast(&eq->AST, file, eq->string);
 }
 
 eqparse_t * eqparse(char * string, size_t slen, int * err){

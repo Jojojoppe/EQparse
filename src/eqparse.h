@@ -74,7 +74,7 @@ void eqparse_cleanup(eqparse_t * eq);
 
 void debug_print_token(token_t * token);
 void debug_print_ast(ast_t * ast);
-void debug_write_ast(ast_t * ast, const char * file);
+void debug_write_eq(eqparse_t * eq, const char * file);
 
 #include "eqparse_data.h"
 

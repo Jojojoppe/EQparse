@@ -3,7 +3,7 @@
 
 int main(int argc, char ** argv){
 
-    char * s = "ddt(ddt(x))-5*ddt(x) = 15/x";
+    char * s = "x = (5+3)*y";
     int err = EQPARSE_ERROR_OK;
     eqparse_t * eq = eqparse(s, 0, &err);
     if(err==EQPARSE_ERROR_CHARACTER){
@@ -22,7 +22,7 @@ int main(int argc, char ** argv){
 
     if(!err){
         debug_print_ast(&eq->AST);
-        debug_write_ast(&eq->AST, "testout.dot");
+        debug_write_eq(eq, "testout.dot");
     }
 
     eqparse_cleanup(eq);
