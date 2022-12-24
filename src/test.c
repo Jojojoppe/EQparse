@@ -3,7 +3,7 @@
 
 int main(int argc, char ** argv){
 
-    char * s = "x = (5+3)*y";
+    char * s = "x = -1+y*-21.3";
     int err = EQPARSE_ERROR_OK;
     eqparse_t * eq = eqparse(s, 0, &err);
     if(err==EQPARSE_ERROR_CHARACTER){

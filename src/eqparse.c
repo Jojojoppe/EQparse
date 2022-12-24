@@ -37,23 +37,20 @@ token_t next_token(eqparse_t * eq){
 
             // Check if start of number
             if(c>='0' && c<='9'){
-                buf[0] = c;
-                bufpos = 1;
+                buf[bufpos++] = c;
                 mode = NEXT_TOKEN_MODE_NUMBER;
                 continue;
             }
 
             // Check if start of string
             else if((c>='a' && c<='z') || (c>='A' && c<='Z')){
-                buf[0] = c;
-                bufpos = 1;
+                buf[bufpos++] = c;
                 mode = NEXT_TOKEN_MODE_STRING;
                 continue;
             }
 
             // Check if simple character
             else if(c=='+') {tok.tok = TOKEN_PLUS; break;}
-            else if(c=='-') {tok.tok = TOKEN_MINUS; break;}
             else if(c=='*') {tok.tok = TOKEN_TIMES; break;}
             else if(c=='/') {tok.tok = TOKEN_DIVIDE; break;}
             else if(c=='^') {tok.tok = TOKEN_POWER; break;}
@@ -63,8 +60,33 @@ token_t next_token(eqparse_t * eq){
             else if(c==',') {tok.tok = TOKEN_COMMA; break;}
             else if(c=='=') {tok.tok = TOKEN_EQUAL; break;}
 
+            // Check if minus is token or part of number
+            else if(c=='-'){
+                if(
+                        eq->_prev.tok==TOKEN_NULL || 
+                        eq->_prev.tok==TOKEN_PLUS ||
+                        eq->_prev.tok==TOKEN_MINUS ||
+                        eq->_prev.tok==TOKEN_TIMES ||
+                        eq->_prev.tok==TOKEN_DIVIDE ||
+                        eq->_prev.tok==TOKEN_MODULO ||
+                        eq->_prev.tok==TOKEN_EQUAL ||
+                        eq->_prev.tok==TOKEN_BROPEN ||
+                        eq->_prev.tok==TOKEN_COMMA
+                        ){
+                    buf[0] = c;
+                    bufpos+=1;
+                    mode == NEXT_TOKEN_MODE_NUMBER;
+                    continue;
+                }
+                tok.tok = TOKEN_MINUS;
+                break;
+            }
+
             // Ignore whitespaces
-            else if(c==' ' || c=='\t' || c=='\n') continue;
+            else if(c==' ' || c=='\t' || c=='\n'){
+                eq->_prev.tok = TOKEN_NULL;
+                continue;
+            }
 
             // Unknown character
             tok.cvalue = c;
@@ -116,6 +138,7 @@ token_t next_token(eqparse_t * eq){
         }
     }
 
+    eq->_prev = tok;
     return tok;
 }
 
@@ -193,6 +216,7 @@ int parse_tokens(eqparse_t * eq){
                 if(op.tok.type == TOKEN_TYPE_OPERATOR || op.tok.type == TOKEN_TYPE_EQUALITY){
                     if(expstack.length<2){
                         eq->token_error = tok;
+                        printf("A\n");
                         err = EQPARSE_ERROR_EXPRESSION;
                         goto parse_tokens_return;
                     }
@@ -248,6 +272,7 @@ int parse_tokens(eqparse_t * eq){
                 if(op.tok.type == TOKEN_TYPE_OPERATOR || op.tok.type == TOKEN_TYPE_EQUALITY){
                     if(expstack.length<2){
                         eq->token_error = tok;
+                        printf("B\n");
                         err = EQPARSE_ERROR_EXPRESSION;
                         goto parse_tokens_return;
                     }
@@ -329,6 +354,7 @@ int parse_tokens(eqparse_t * eq){
         }
         if(op.tok.type == TOKEN_TYPE_OPERATOR || op.tok.type == TOKEN_TYPE_EQUALITY){
             if(expstack.length<2){
+                printf("C\n");
                 eq->token_error = tok;
                 err = EQPARSE_ERROR_EXPRESSION;
                 goto parse_tokens_return;

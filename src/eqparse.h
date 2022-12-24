@@ -67,6 +67,7 @@ typedef struct{
     size_t slen;
     token_t token_error;
     ast_t AST;
+    token_t _prev;
 } eqparse_t;
 
 eqparse_t * eqparse(char * string, size_t slen, int * err);
