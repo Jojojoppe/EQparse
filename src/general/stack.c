@@ -42,8 +42,6 @@ int d_stack_resize(d_stack_t * stack, size_t newsize){
     // Do not resize if smaller then start size
     if(newsize<D_STACK_START_SIZE) return D_STACK_ERROR_OK;
 
-    printf("RESIZE %ld -> %ld\n", stack->size, stack->elem_size*newsize);
-
     void * newmem = calloc(stack->elem_size, newsize);
     if(newmem==NULL) return D_STACK_ERROR_MEMORY;
     memcpy(newmem, stack->_begin, stack->size>newsize*stack->elem_size ? stack->elem_size*newsize : stack->size);

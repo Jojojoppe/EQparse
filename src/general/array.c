@@ -42,8 +42,6 @@ int d_array_resize(d_array_t * array, size_t newsize){
     // Do not resize if smaller then start size
     if(newsize<D_ARRAY_START_SIZE) return D_ARRAY_ERROR_OK;
 
-    printf("RESIZE %ld -> %ld\n", array->size, array->elem_size*newsize);
-
     void * newmem = calloc(array->elem_size, newsize);
     if(newmem==NULL) return D_ARRAY_ERROR_MEMORY;
     memcpy(newmem, array->_begin, array->size>newsize*array->elem_size ? array->elem_size*newsize : array->size);
@@ -55,7 +53,7 @@ int d_array_resize(d_array_t * array, size_t newsize){
     return D_ARRAY_ERROR_OK;
 }
 
-void d_array_push(d_array_t * array, void * data){
+void d_array_insert(d_array_t * array, void * data){
     if(array==NULL) return;
     if(array->_begin==NULL) return;
 

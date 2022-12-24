@@ -119,6 +119,138 @@ token_t next_token(eqparse_t * eq){
     return tok;
 }
 
+int parse_tokens(eqparse_t * eq){
+    token_t tok;
+
+    d_stack_t oprstack, expstack;
+    int err = 0;
+    err |= D_STACK_CREATE(ast_t, &oprstack);
+    err |= D_STACK_CREATE(ast_t, &expstack);
+    if(err){
+        err = EQPARSE_ERROR_INTERNAL;
+        goto parse_tokens_return;
+    }
+
+    while((tok=next_token(eq)).tok!=TOKEN_EOF){
+
+        printf("next: ");
+        debug_print_token(&tok);
+        printf("\n");
+
+        // Check for unknown character
+        if(tok.tok==TOKEN_NULL){
+            eq->token_error = tok;
+            err = EQPARSE_ERROR_CHARACTER;
+            goto parse_tokens_return;
+        }
+
+        // double number -> VALUE
+        else if(tok.tok==TOKEN_DNUMBER){
+            tok.type = TOKEN_TYPE_VALUE;
+            ast_t n = {.tok=tok};
+            D_ARRAY_CREATE(ast_t, &n.children);
+            d_stack_push(&expstack, &n);
+            continue;
+        }
+        // integer number -> VALUE
+        else if(tok.tok==TOKEN_INUMBER){
+            tok.type = TOKEN_TYPE_VALUE;
+            ast_t n = {.tok=tok};
+            D_ARRAY_CREATE(ast_t, &n.children);
+            d_stack_push(&expstack, &n);
+            continue;
+        }
+
+        // (
+        else if(tok.tok==TOKEN_BROPEN){
+            ast_t n = {.tok=tok};
+            D_ARRAY_CREATE(ast_t, &n.children);
+            d_stack_push(&oprstack, &n);
+            continue;
+        }
+
+        else if(tok.tok==TOKEN_BRCLOSE){
+            while(
+                    oprstack.length && 
+                    D_STACK_TOP(ast_t, &oprstack)->tok.tok!=TOKEN_BROPEN){
+                // pop op, e2 and e1
+                ast_t op = *D_STACK_POP_DATA(ast_t, &oprstack);
+                ast_t e2 = *D_STACK_POP_DATA(ast_t, &expstack);
+                ast_t e1 = *D_STACK_POP_DATA(ast_t, &expstack);
+                d_array_insert(&op.children, &e1);
+                d_array_insert(&op.children, &e2);
+                d_stack_push(&expstack, &op);
+            }
+            d_stack_pop(&oprstack);
+        }
+
+        // Operator -> OPERATOR
+        else if(
+                tok.tok==TOKEN_PLUS ||
+                tok.tok==TOKEN_MINUS ||
+                tok.tok==TOKEN_TIMES ||
+                tok.tok==TOKEN_DIVIDE ||
+                tok.tok==TOKEN_POWER ||
+                tok.tok==TOKEN_MODULO){
+            int operator_i = tok.tok - TOKEN_PLUS;
+            while(
+                    oprstack.length && 
+                    eqparse_operators[D_STACK_TOP(ast_t, &oprstack)->tok.tok-TOKEN_PLUS].precedence >= eqparse_operators[operator_i].precedence){
+                // pop op, e2 and e1
+                ast_t op = *D_STACK_POP_DATA(ast_t, &oprstack);
+                ast_t e2 = *D_STACK_POP_DATA(ast_t, &expstack);
+                ast_t e1 = *D_STACK_POP_DATA(ast_t, &expstack);
+                d_array_insert(&op.children, &e1);
+                d_array_insert(&op.children, &e2);
+                d_stack_push(&expstack, &op);
+            }
+            tok.type = TOKEN_TYPE_OPERATOR;
+            ast_t n = {.tok=tok};
+            D_ARRAY_CREATE(ast_t, &n.children);
+            d_stack_push(&oprstack, &n);
+        }
+
+        // If string we must check if function, constant or variable
+        else if(tok.tok==TOKEN_STRING){
+            // Check constants -> VALUE
+            for(int i=0; i<EQPARSE_CONSTANT_INFO_N; i++){
+                if(!strcmp(tok.svalue, eqparse_constants[i].name)){
+                    tok.type = TOKEN_TYPE_VALUE;
+                    ast_t n = {.tok=tok};
+                    D_ARRAY_CREATE(ast_t, &n.children);
+                    d_stack_push(&expstack, &n);
+                    continue;
+                }
+            }
+            // Check for functions -> FUNCTION
+            // No constant or function -> variable -> VALUE
+            tok.type = TOKEN_TYPE_VALUE;
+            ast_t n = {.tok=tok};
+            D_ARRAY_CREATE(ast_t, &n.children);
+            d_stack_push(&expstack, &n);
+            continue;
+        }
+    }
+
+    while(oprstack.length){
+        // pop op, e2 and e1
+        ast_t op = *D_STACK_POP_DATA(ast_t, &oprstack);
+        ast_t e2 = *D_STACK_POP_DATA(ast_t, &expstack);
+        ast_t e1 = *D_STACK_POP_DATA(ast_t, &expstack);
+        d_array_insert(&op.children, &e1);
+        d_array_insert(&op.children, &e2);
+        d_stack_push(&expstack, &op);
+    }
+
+    eq->AST = *D_STACK_TOP(ast_t, &expstack);
+
+    err = EQPARSE_ERROR_OK;
+parse_tokens_return:
+    d_stack_destroy(&oprstack);
+    d_stack_destroy(&expstack);
+    return err;
+}
+
 void debug_print_token(token_t * token){
     switch(token->tok){
         case TOKEN_DNUMBER: printf("%.2f ", token->dvalue); break;
@@ -140,7 +272,31 @@ void debug_print_token(token_t * token){
     }
 }
 
-eqparse_t * eqparse(char * string, size_t slen){
+void _debug_print_ast(ast_t * ast){
+    if(ast==NULL) return;
+    switch(ast->tok.type){
+        case TOKEN_TYPE_VALUE:
+            if(ast->tok.tok==TOKEN_DNUMBER) printf("%.2f", ast->tok.dvalue);
+            else if(ast->tok.tok==TOKEN_INUMBER) printf("%d", ast->tok.ivalue);
+            else if(ast->tok.tok==TOKEN_STRING) printf("%s", ast->tok.svalue);
+            return;
+        case TOKEN_TYPE_OPERATOR:
+            printf("%s(", eqparse_operators[ast->tok.tok-TOKEN_PLUS].s);
+            break;
+        default: printf("?(");
+    }
+    D_ARRAY_FOREACH_BT(ast_t, child, &ast->children){
+        _debug_print_ast(child);
+        printf(", ");
+    }
+    printf("\b\b)");
+}
+void debug_print_ast(ast_t * ast){
+    _debug_print_ast(ast);
+    printf("\n");
+}
+
+eqparse_t * eqparse(char * string, size_t slen, int * err){
     if(string==NULL) return NULL;
     if(strlen(string)==0) return NULL;
     if(slen==0) slen=strlen(string);
@@ -151,15 +307,26 @@ eqparse_t * eqparse(char * string, size_t slen){
     eq->string = calloc(slen+1, 1);
     if(eq->string==NULL){
         free(eq);
+        if(err) *err = EQPARSE_ERROR_INTERNAL;
+        return NULL;
+    }
+
+    eq->AST.tok.tok = TOKEN_NULL;
+    if(D_ARRAY_CREATE(ast_t, &eq->AST.children)){
+        free(eq->string);
+        free(eq);
+        if(err) *err = EQPARSE_ERROR_INTERNAL;
         return NULL;
     }
 
     memcpy(eq->string, string, slen);
     eq->slen = slen;
 
-    token_t tok;
-    while((tok = next_token(eq)).tok!=TOKEN_EOF){
-        debug_print_token(&tok);
+    int rval = parse_tokens(eq);
+    printf("parse_tokens -> %d\n", rval);
+    if(rval){
+        if(err) *err = rval;
+        return eq;
     }
 
     return eq;

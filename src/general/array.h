@@ -33,7 +33,7 @@ int d_array_create(d_array_t * array, size_t elem_size);
 int d_array_destroy(d_array_t * array);
 int d_array_resize(d_array_t * array, size_t newsize);
 
-void d_array_push(d_array_t * array, void * data);
+void d_array_insert(d_array_t * array, void * data);
 void * d_array_pop(d_array_t * array);
 void d_array_erase(d_array_t * array, size_t index);
 

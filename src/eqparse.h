@@ -47,12 +47,31 @@ typedef struct{
 } token_t;
 
 typedef struct{
+    token_t tok;
+    d_array_t children;
+} ast_t;
+
+enum{
+    EQPARSE_ERROR_OK=0,
+    EQPARSE_ERROR_INTERNAL,
+    EQPARSE_ERROR_CHARACTER,
+    EQPARSE_ERROR_UNMATCHED,
+};
+
+typedef struct{
     char * string;
     size_t position;
     size_t slen;
+    token_t token_error;
+    ast_t AST;
 } eqparse_t;
 
-eqparse_t * eqparse(char * string, size_t slen);
+eqparse_t * eqparse(char * string, size_t slen, int * err);
 void eqparse_cleanup(eqparse_t * eq);
+
+void debug_print_token(token_t * token);
+void debug_print_ast(ast_t * ast);
+
+#include "eqparse_data.h"
 
 #endif
