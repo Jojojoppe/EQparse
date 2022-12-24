@@ -1,21 +1,27 @@
 digraph{
-root [label="x = pi+y*-3*x"]
+root [label="x = sin(y)+13*x+-2*x"]
 root0 [label="="]
 root -> root0
 root00 [label="x"]
 root0 -> root00
 root01 [label="+"]
 root0 -> root01
-root010 [label="pi"]
+root010 [label="+"]
 root01 -> root010
+root0100 [label="sin"]
+root010 -> root0100
+root01000 [label="y"]
+root0100 -> root01000
+root0101 [label="*"]
+root010 -> root0101
+root01010 [label="13"]
+root0101 -> root01010
+root01011 [label="x"]
+root0101 -> root01011
 root011 [label="*"]
 root01 -> root011
-root0110 [label="*"]
+root0110 [label="-2"]
 root011 -> root0110
-root01100 [label="y"]
-root0110 -> root01100
-root01101 [label="-3"]
-root0110 -> root01101
 root0111 [label="x"]
 root011 -> root0111
 }

@@ -153,7 +153,7 @@ void _clean_ast(ast_t * ast){
     D_ARRAY_FOREACH_BT(ast_t, n, &ast->children){
         _clean_ast(n);
     }
-    if(ast->tok.tok==TOKEN_STRING || ast->tok.type==TOKEN_TYPE_FUNCTION){
+    if(ast->tok.tok==TOKEN_STRING){
         free(ast->tok.svalue);
     }
     d_array_destroy(&ast->children);
@@ -231,7 +231,7 @@ int parse_tokens(eqparse_t * eq){
                     d_array_insert(&op.children, &e2);
                     d_stack_push(&expstack, &op);
                 } else if(op.tok.type == TOKEN_TYPE_FUNCTION){
-                    int args = eqparse_functions[op.tok.tok].arguments;
+                    int args = eqparse_functions[op.tok.ivalue].arguments;
                     if(expstack.length<args){
                         eq->token_error = tok;
                         err = EQPARSE_ERROR_EXPRESSION;
@@ -286,7 +286,7 @@ int parse_tokens(eqparse_t * eq){
                     d_array_insert(&op.children, &e2);
                     d_stack_push(&expstack, &op);
                 } else if(op.tok.type == TOKEN_TYPE_FUNCTION){
-                    int args = eqparse_functions[op.tok.tok].arguments;
+                    int args = eqparse_functions[op.tok.ivalue].arguments;
                     if(expstack.length<args){
                         eq->token_error = tok;
                         err = EQPARSE_ERROR_EXPRESSION;
@@ -331,7 +331,10 @@ int parse_tokens(eqparse_t * eq){
             for(int i=0; i<EQPARSE_FUNCTION_INFO_N; i++){
                 if(!strcmp(tok.svalue, eqparse_functions[i].name)){
                     tok.type = TOKEN_TYPE_FUNCTION;
-                    tok.tok = i; // misuse the token field for function entry
+                    tok.tok = TOKEN_NULL;
+                    /*tok.tok = i; // misuse the token field for function entry*/
+                    free(tok.svalue);
+                    tok.ivalue = i;
                     ast_t n = {.tok = tok};
                     D_ARRAY_CREATE(ast_t, &n.children);
                     d_stack_push(&oprstack, &n);
@@ -368,7 +371,7 @@ int parse_tokens(eqparse_t * eq){
             d_array_insert(&op.children, &e2);
             d_stack_push(&expstack, &op);
         } else if(op.tok.type == TOKEN_TYPE_FUNCTION){
-            int args = eqparse_functions[op.tok.tok].arguments;
+            int args = eqparse_functions[op.tok.ivalue].arguments;
             if(expstack.length<args){
                 eq->token_error = tok;
                 err = EQPARSE_ERROR_EXPRESSION;
@@ -452,7 +455,7 @@ void _debug_print_ast(ast_t * ast){
             printf("%s(", eqparse_operators[ast->tok.tok-TOKEN_PLUS].s);
             break;
         case TOKEN_TYPE_FUNCTION:
-            printf("%s(", eqparse_functions[ast->tok.tok].name);
+            printf("%s(", eqparse_functions[ast->tok.ivalue].name);
             break;
         case TOKEN_TYPE_EQUALITY:
             printf("EQ(");
@@ -490,7 +493,7 @@ void _debug_write_ast(ast_t * ast, FILE * f, char * parent, int i){
         }
         fprintf(f, "%s -> %s%d\n", parent, parent, i);
     }else if(ast->tok.type==TOKEN_TYPE_FUNCTION){
-        fprintf(f, "%s%d [label=\"%s\"]\n", parent, i, ast->tok.svalue);
+        fprintf(f, "%s%d [label=\"%s\"]\n", parent, i, eqparse_functions[ast->tok.ivalue].name);
         fprintf(f, "%s -> %s%d\n", parent, parent, i);
     }
 
