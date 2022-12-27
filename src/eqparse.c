@@ -2,12 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 enum{
     NEXT_TOKEN_MODE_IDLE,
     NEXT_TOKEN_MODE_NUMBER,
     NEXT_TOKEN_MODE_STRING
 };
+
+char * _debug_print_ast(ast_t * ast, char * s);
 
 token_t next_token(eqparse_t * eq){
     token_t tok = {.tok=TOKEN_NULL, .type=TOKEN_TYPE_NULL};
@@ -450,7 +453,6 @@ int _eqparse_equivalence(ast_t * node, const eqrule_term * term){
     if(term->nrterms!=node->children.length) return 0;
 
     int childmatch = 1;
-
     for(int i=0; i<term->nrterms; i++){
         childmatch &= _eqparse_equivalence(D_ARRAY_AT(ast_t, &node->children, term->nrterms-i-1), &term->terms[i]);
         if(!childmatch) break;
@@ -459,13 +461,23 @@ int _eqparse_equivalence(ast_t * node, const eqrule_term * term){
     return childmatch;
 }
 
-void _eqparse_apply_rule_visit(ast_t * node, const eqrule_term * term, d_array_t * interested){
+int _eqparse_apply_rule_visit(ast_t * node, const eqrule_term * term, d_array_t * interested){
     if(term->interested>0){
-        d_array_insert(interested, node);
+        if(term->interested<=interested->length){
+            // Check if terms are equal
+            char s1[4096] = {0};
+            char s2[4096] = {0};
+            _debug_print_ast(node, s1);
+            _debug_print_ast(D_ARRAY_AT(ast_t, interested, term->interested-1), s2);
+            if(strcmp(s1, s2)) return 1;
+        }else{
+            d_array_insert(interested, node);
+        }
     }
     for(int i=0; i<term->nrterms; i++){
-        _eqparse_apply_rule_visit(D_ARRAY_AT(ast_t, &node->children, term->nrterms-i-1), &term->terms[i], interested);
+        if(_eqparse_apply_rule_visit(D_ARRAY_AT(ast_t, &node->children, term->nrterms-i-1), &term->terms[i], interested)) return 1;
     }
+    return 0;
 }
 
 void _eqparse_apply_rule_create(ast_t * node, const eqrule_term * term, d_array_t * interested){
@@ -479,12 +491,13 @@ void _eqparse_apply_rule_create(ast_t * node, const eqrule_term * term, d_array_
         .tok = term->token,
         .type = term->type,
     };
-    node->tok = tok;
 
     if(term->valued){
         if(term->token==TOKEN_INUMBER) tok.ivalue = term->ivalue;
         else if(term->token==TOKEN_DNUMBER) tok.dvalue = term->dvalue;
     }
+
+    node->tok = tok;
 
     D_ARRAY_CREATE(ast_t, &node->children);
     for(int i=0; i<term->nrterms; i++){
@@ -500,7 +513,10 @@ int _eqparse_apply_rule(ast_t * node, const eqrule * rule){
     d_array_t interested;
     D_ARRAY_CREATE(ast_t, &interested);
     // Get all interested
-    _eqparse_apply_rule_visit(node, &rule->from, &interested);
+    if(_eqparse_apply_rule_visit(node, &rule->from, &interested)){
+        d_array_destroy(&interested);
+        return 1;
+    }
 
     // Build up new ast
     ast_t new;
@@ -514,35 +530,95 @@ int _eqparse_apply_rule(ast_t * node, const eqrule * rule){
     return 0;
 }
 
-int _eqparse_do_rulelist(ast_t * node, const eqrule * list){
+int _eqparse_do_rulelist(ast_t * node, const eqrule * list, int nr){
     if(node==NULL) return 0;
+
     int matched = -1; 
-    for(int i=0; i<sizeof(eqrule_normalisation)/sizeof(eqrule); i++){
+    for(int i=0; i<nr; i++){
         if(_eqparse_equivalence(node, &list[i].from)){
             matched = i;
-            break;
+            if(_eqparse_apply_rule(node, &list[matched])){
+                matched = -1;
+                continue;
+            }else{
+                break;
+            }
         }
     }
 
     // Apply rule
-    if(matched>=0) _eqparse_apply_rule(node, &list[matched]);
+    if(matched>=0){
+    }
     
     int chdone = matched>=0 ? 1 : 0;
     D_ARRAY_FOREACH_BT(ast_t, n, &node->children){
-        chdone += _eqparse_do_rulelist(n, list);
+        chdone += _eqparse_do_rulelist(n, list, nr);
     }
     return chdone;
 }
 
+int _eqparse_do_operations_visit(ast_t * node, double * v){
+    if(node==NULL) return 0;
+    if(node->tok.tok==TOKEN_INUMBER){
+        *v = (double)node->tok.ivalue;
+        return 1;
+    }
+    if(node->tok.tok==TOKEN_DNUMBER){
+        *v = node->tok.dvalue;
+        return 1;
+    }
+
+    if(node->tok.type==TOKEN_TYPE_OPERATOR){
+        ast_t * e1 = D_ARRAY_AT(ast_t, &node->children, 1);
+        ast_t * e2 = D_ARRAY_AT(ast_t, &node->children, 0);
+        double v1, v2, _v;
+        if(_eqparse_do_operations_visit(e1, &v1) && _eqparse_do_operations_visit(e2, &v2)){
+            if(node->tok.tok==TOKEN_PLUS) _v=v1+v2;
+            if(node->tok.tok==TOKEN_MINUS) _v=v1-v2;
+            if(node->tok.tok==TOKEN_TIMES) _v=v1*v2;
+            if(node->tok.tok==TOKEN_DIVIDE) _v=v1/v2;
+            if(node->tok.tok==TOKEN_POWER) _v=pow(v1, v2);
+            if(node->tok.tok==TOKEN_MODULO) _v=fmod(v1, v2);
+
+            _clean_ast(e1);
+            _clean_ast(e1);
+            node->tok.tok = TOKEN_DNUMBER;
+            node->tok.type = TOKEN_TYPE_VALUE;
+            node->tok.dvalue = _v;
+            while(node->children.length){
+                d_array_erase(&node->children, node->children.length-1);
+            }
+            *v = _v;
+            return 1;
+        }
+    }
+
+    D_ARRAY_FOREACH_BT(ast_t, n, &node->children){
+        double v;
+        _eqparse_do_operations_visit(n, &v);
+    }
+
+    return 0;
+}
+
+void _eqparse_do_operations(eqparse_t * eq){
+    double v;
+    _eqparse_do_operations_visit(&eq->AST, &v);
+}
+
 int _eqparse_normalize(eqparse_t * eq){
-    return _eqparse_do_rulelist(&eq->AST, &eqrule_normalisation);
+    return _eqparse_do_rulelist(&eq->AST, &eqrule_normalisation, sizeof(eqrule_normalisation)/sizeof(eqrule));
+}
+
+int _eqparse_simplify(eqparse_t * eq){
+    return _eqparse_do_rulelist(&eq->AST, &eqrule_simplification, sizeof(eqrule_simplification)/sizeof(eqrule));
 }
 
 // -----------------------
 
 void debug_print_token(token_t * token){
     switch(token->tok){
-        case TOKEN_DNUMBER: printf("%.2f ", token->dvalue); break;
+        case TOKEN_DNUMBER: printf("%.2lf ", token->dvalue); break;
         case TOKEN_INUMBER: printf("%ld ", token->ivalue); break;
         case TOKEN_PLUS: printf("+ "); break;
         case TOKEN_MINUS: printf("- "); break;
@@ -561,34 +637,37 @@ void debug_print_token(token_t * token){
     }
 }
 
-void _debug_print_ast(ast_t * ast){
-    if(ast==NULL) return;
+char * _debug_print_ast(ast_t * ast, char * s){
+    if(ast==NULL) return s;
     switch(ast->tok.type){
         case TOKEN_TYPE_VALUE:
-            if(ast->tok.tok==TOKEN_DNUMBER) printf("%.2f", ast->tok.dvalue);
-            else if(ast->tok.tok==TOKEN_INUMBER) printf("%d", ast->tok.ivalue);
-            else if(ast->tok.tok==TOKEN_STRING) printf("%s", ast->tok.svalue);
-            return;
+            if(ast->tok.tok==TOKEN_DNUMBER) s+=sprintf(s, "%.2f", ast->tok.dvalue);
+            else if(ast->tok.tok==TOKEN_INUMBER) s+=sprintf(s, "%.2f", (double)ast->tok.ivalue);
+            else if(ast->tok.tok==TOKEN_STRING) s+=sprintf(s, "%s", ast->tok.svalue);
+            return s;
         case TOKEN_TYPE_OPERATOR:
-            printf("%s(", eqparse_operators[ast->tok.tok-TOKEN_PLUS].s);
+            s+=sprintf(s, "%s(", eqparse_operators[ast->tok.tok-TOKEN_PLUS].s);
             break;
         case TOKEN_TYPE_FUNCTION:
-            printf("%s(", eqparse_functions[ast->tok.ivalue].name);
+            s+=sprintf(s, "%s(", eqparse_functions[ast->tok.ivalue].name);
             break;
         case TOKEN_TYPE_EQUALITY:
-            printf("EQ(");
+            s+=sprintf(s, "EQ(");
             break;
-        default: printf("?(");
+        default: s+=sprintf(s, "?(");
     }
     D_ARRAY_FOREACH_TB(ast_t, child, &ast->children){
-        _debug_print_ast(child);
-        printf(", ");
+        s = _debug_print_ast(child, s);
+        s+=sprintf(s, ", ");
     }
-    printf("\b\b)");
+    s -= 2;
+    s+= sprintf(s, ")");
+    return s;
 }
 void debug_print_ast(ast_t * ast){
-    _debug_print_ast(ast);
-    printf("\n");
+    char s[4096] = {0};
+    _debug_print_ast(ast, s);
+    printf("%s\n", s);
 }
 
 void _debug_write_ast(ast_t * ast, FILE * f, char * parent, int i){
@@ -601,7 +680,7 @@ void _debug_write_ast(ast_t * ast, FILE * f, char * parent, int i){
         fprintf(f, "%s -> %s%d\n", parent, parent, i);
     }else if(ast->tok.type==TOKEN_TYPE_VALUE){
         if(ast->tok.tok==TOKEN_DNUMBER){
-            fprintf(f, "%s%d [label=\"%lf\"]\n", parent, i, ast->tok.dvalue);
+            fprintf(f, "%s%d [label=\"%.2lf\"]\n", parent, i, ast->tok.dvalue);
         }
         else if(ast->tok.tok==TOKEN_INUMBER){
             fprintf(f, "%s%d [label=\"%ld\"]\n", parent, i, ast->tok.ivalue);
@@ -666,12 +745,17 @@ eqparse_t * eqparse(char * string, size_t slen, int * err){
     // Simplify
     printf("Simplification: ");
     int steps = 100;
-    int done = 1;
-    while(done && steps){
+    while(steps){
         printf(".");
-        done = 0;
+        int done = 0;
+        // do all simplification steps
+        _eqparse_do_operations(eq);
+        printf("N");
         done += _eqparse_normalize(eq);
+        printf("S");
+        done += _eqparse_simplify(eq);
         steps -= 1;
+        if(done==0 && steps) steps=1;
     }
     printf("\n");
 

@@ -3,7 +3,7 @@
 
 int main(int argc, char ** argv){
 
-    char * s = "x = x+3*6";
+    char * s = "y = x+y+x+y";
     int err = EQPARSE_ERROR_OK;
     eqparse_t * eq = eqparse(s, 0, &err);
     if(err==EQPARSE_ERROR_CHARACTER){

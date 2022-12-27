@@ -1,17 +1,21 @@
 digraph{
-root [label="x = x+3*6"]
+root [label="y = x+y+x+y"]
 root0 [label="="]
 root -> root0
-root00 [label="x"]
+root00 [label="y"]
 root0 -> root00
 root01 [label="+"]
 root0 -> root01
-root010 [label="*"]
+root010 [label="+"]
 root01 -> root010
-root0100 [label="3"]
+root0100 [label="+"]
 root010 -> root0100
-root0101 [label="6"]
+root01000 [label="x"]
+root0100 -> root01000
+root01001 [label="y"]
+root0100 -> root01001
+root0101 [label="x"]
 root010 -> root0101
-root011 [label="x"]
+root011 [label="y"]
 root01 -> root011
 }

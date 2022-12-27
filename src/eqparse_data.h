@@ -77,14 +77,15 @@ typedef struct{
 #define DNC_NN(i) {.token=TOKEN_NULL, .type=TOKEN_TYPE_NULL, .valued=0, .interested=(i), .nrterms=0, .terms=((eqrule_term[]){}), .note=EQRULE_NOTE_NO_NUMBER}
 
 #define OP_ADD(t) {.token=TOKEN_PLUS, .type=TOKEN_TYPE_OPERATOR, .valued=0, .interested=0, .nrterms=2, .terms=(t)}
-#define OP_SUB(terms) {.token=TOKEN_MINUS, .type=TOKEN_TYPE_OPERATOR, .valued=0, .interested=0, .nrterms=2, .terms=(t)}
+#define OP_SUB(t) {.token=TOKEN_MINUS, .type=TOKEN_TYPE_OPERATOR, .valued=0, .interested=0, .nrterms=2, .terms=(t)}
 #define OP_MUL(t) {.token=TOKEN_TIMES, .type=TOKEN_TYPE_OPERATOR, .valued=0, .interested=0, .nrterms=2, .terms=(t)}
 #define OP_DIV(t) {.token=TOKEN_DIVIDE, .type=TOKEN_TYPE_OPERATOR, .valued=0, .interested=0, .nrterms=2, .terms=(t)}
+#define OP_POW(t) {.token=TOKEN_POWER, .type=TOKEN_TYPE_OPERATOR, .valued=0, .interested=0, .nrterms=2, .terms=(t)}
 
 #define INUMBER(i) {.token=TOKEN_INUMBER, .type=TOKEN_TYPE_VALUE, .valued=0, .interested=(i), .nrterms=0, .terms=((eqrule_term[]){})}
-#define INUMBER_V(i, v) {.token=TOKEN_INUMBER, .type=TOKEN_TYPE_VALUE, .valued=1, .interested=(i), .nrterms=0, .terms=((eqrule_term[]){}), .dvalue=(v))}
+#define INUMBER_V(i, v) {.token=TOKEN_INUMBER, .type=TOKEN_TYPE_VALUE, .valued=1, .interested=(i), .nrterms=0, .terms=((eqrule_term[]){}), .ivalue=(v)}
 #define DNUMBER(i) {.token=TOKEN_DNUMBER, .type=TOKEN_TYPE_VALUE, .valued=0, .interested=(i), .nrterms=0, .terms=((eqrule_term[]){}))}
-#define DNUMBER_V(i, v) {.token=TOKEN_DNUMBER, .type=TOKEN_TYPE_VALUE, .valued=1, .interested=(i), .nrterms=0, .terms=((eqrule_term[]){}), .dvalue=(v))}
+#define DNUMBER_V(i, v) {.token=TOKEN_DNUMBER, .type=TOKEN_TYPE_VALUE, .valued=1, .interested=(i), .nrterms=0, .terms=((eqrule_term[]){}), .dvalue=(v)}
 
 // NORMALISATION RULES
 static const eqrule eqrule_normalisation[] = {
@@ -97,21 +98,115 @@ static const eqrule eqrule_normalisation[] = {
         OP_ADD(((eqrule_term[]){INUMBER(2), DNC_NN(1)})),
     },
     {   // (+)+? -> ?+(+)
-        OP_ADD(((eqrule_term[]){DNC(1),OP_ADD(((eqrule_term[]){DNC(2), DNC(3)}))})),
-        OP_ADD(((eqrule_term[]){OP_ADD(((eqrule_term[]){DNC(2), DNC(3)})),DNC(1)})),
+        OP_ADD(((eqrule_term[]){DNC_NN(1),OP_ADD(((eqrule_term[]){DNC(2), DNC(3)}))})),
+        OP_ADD(((eqrule_term[]){OP_ADD(((eqrule_term[]){DNC(2), DNC(3)})),DNC_NN(1)})),
     },
     {   // (*)*? -> ?*(*)
-        OP_MUL(((eqrule_term[]){DNC(1), OP_MUL(((eqrule_term[]){DNC(2), DNC(3)}))})),
-        OP_MUL(((eqrule_term[]){OP_MUL(((eqrule_term[]){DNC(2), DNC(3)})), DNC(1)})),
+        OP_MUL(((eqrule_term[]){DNC_NN(1), OP_MUL(((eqrule_term[]){DNC(2), DNC(3)}))})),
+        OP_MUL(((eqrule_term[]){OP_MUL(((eqrule_term[]){DNC(2), DNC(3)})), DNC_NN(1)})),
     },
     {   // (+)*? -> ?*(+)
-        OP_MUL(((eqrule_term[]){DNC(1), OP_ADD(((eqrule_term[]){DNC(2), DNC(3)}))})),
-        OP_MUL(((eqrule_term[]){OP_ADD(((eqrule_term[]){DNC(2), DNC(3)})), DNC(1)})),
+        OP_MUL(((eqrule_term[]){DNC_NN(1), OP_ADD(((eqrule_term[]){DNC(2), DNC(3)}))})),
+        OP_MUL(((eqrule_term[]){OP_ADD(((eqrule_term[]){DNC(2), DNC(3)})), DNC_NN(1)})),
     },
     {   // (*)+? -> ?+(*)
-        OP_ADD(((eqrule_term[]){DNC(1), OP_MUL(((eqrule_term[]){DNC(2), DNC(3)}))})),
-        OP_ADD(((eqrule_term[]){OP_MUL(((eqrule_term[]){DNC(2), DNC(3)})), DNC(1)})),
+        OP_ADD(((eqrule_term[]){DNC_NN(1), OP_MUL(((eqrule_term[]){DNC(2), DNC(3)}))})),
+        OP_ADD(((eqrule_term[]){OP_MUL(((eqrule_term[]){DNC(2), DNC(3)})), DNC_NN(1)})),
     },
+};
+
+// SIMPLIFICATION RULES
+static const eqrule eqrule_simplification[] = {
+    // ZERO SIMPLIFICATIONS
+    {   // 0+? -> ?
+        OP_ADD(((eqrule_term[]){INUMBER_V(0, 0), DNC(1)})),
+        DNC(1),
+    }, 
+    {   // 0.0+? -> ?
+        OP_ADD(((eqrule_term[]){DNUMBER_V(0, 0.0f), DNC(1)})),
+        DNC(1),
+    }, 
+    {   // 0*? -> 0
+        OP_MUL(((eqrule_term[]){INUMBER_V(0, 0), DNC(0)})),
+        INUMBER_V(0, 0),
+    }, 
+    {   // 0.0*? -> 0
+        OP_MUL(((eqrule_term[]){DNUMBER_V(0, 0.0f), DNC(0)})),
+        INUMBER_V(0, 0),
+    }, 
+    {   // 0/? -> 0
+        OP_DIV(((eqrule_term[]){INUMBER_V(0, 0), DNC(0)})),
+        INUMBER_V(0, 0),
+    }, 
+    {   // 0.0/? -> 0
+        OP_DIV(((eqrule_term[]){DNUMBER_V(0, 0.0f), DNC(0)})),
+        INUMBER_V(0, 0),
+    }, 
+    {   // 0-? -> -1*?
+        OP_SUB(((eqrule_term[]){INUMBER_V(0, 0), DNC(1)})),
+        OP_MUL(((eqrule_term[]){INUMBER_V(0, -1), DNC(1)})),
+    }, 
+    {   // 0.0-? -> -1*?
+        OP_SUB(((eqrule_term[]){DNUMBER_V(0, 0.0f), DNC(1)})),
+        OP_MUL(((eqrule_term[]){INUMBER_V(0, -1), DNC(1)})),
+    },
+    {   // ?^0 -> ?
+        OP_POW(((eqrule_term[]){DNC(1), INUMBER_V(0, 0)})),
+        DNUMBER_V(0, 1.0),
+    },
+    {   // ?^0.0 -> ?
+        OP_POW(((eqrule_term[]){DNC(1), DNUMBER_V(0, 0.0)})),
+        DNUMBER_V(0, 1.0),
+    },
+
+    // UNITY SIMPLIFICATIONS
+    {   // 1*? -> ?
+        OP_MUL(((eqrule_term[]){INUMBER_V(0, 1), DNC(1)})),
+        DNC(1),
+    }, 
+    {   // 1.0*? -> ?
+        OP_MUL(((eqrule_term[]){DNUMBER_V(0, 1.0), DNC(1)})),
+        DNC(1),
+    },
+    {   // ?+? -> 2*?
+        OP_ADD(((eqrule_term[]){DNC(1), DNC(1)})),
+        OP_MUL(((eqrule_term[]){INUMBER_V(0, 2), DNC(1)})),
+    },
+    {   // ?*? -> ?^2
+        OP_MUL(((eqrule_term[]){DNC(1), DNC(1)})),
+        OP_POW(((eqrule_term[]){DNC(1), INUMBER_V(0, 2)})),
+    },
+    {   // ?^1 -> ?
+        OP_POW(((eqrule_term[]){DNC(1), INUMBER_V(0, 1)})),
+        DNC(1),
+    },
+    {   // ?^1.0 -> ?
+        OP_POW(((eqrule_term[]){DNC(1), DNUMBER_V(0, 1.0)})),
+        DNC(1),
+    },
+
+    // TREE SIMPLIFICATIONS
+    {   //(?+x)+x -> ?+(2*x)
+        OP_ADD(((eqrule_term[]){OP_ADD(((eqrule_term[]){DNC(1), DNC_NN(2)})), DNC_NN(2)})),
+        OP_ADD(((eqrule_term[]){OP_MUL(((eqrule_term[]){INUMBER_V(0, 2), DNC_NN(2)})), DNC(1)})),
+    },
+    {   //(?*x)+x -> (?+1)*x
+        OP_ADD(((eqrule_term[]){OP_MUL(((eqrule_term[]){DNC(1), DNC_NN(2)})), DNC_NN(2)})),
+        OP_MUL(((eqrule_term[]){OP_ADD(((eqrule_term[]){DNC(1), INUMBER_V(0, 1)})), DNC_NN(2)})),
+    },
+    {   //(?*x)+(?*x) -> (?+?)*x
+        OP_ADD(((eqrule_term[]){OP_MUL(((eqrule_term[]){DNC(1), DNC_NN(2)})), OP_MUL(((eqrule_term[]){DNC(3), DNC_NN(2)}))})),
+        OP_MUL(((eqrule_term[]){OP_ADD(((eqrule_term[]){DNC(1), DNC(3)})),DNC_NN(2)})),
+    },
+    {   // (x^?)*x -> x^(?+1)
+        OP_MUL(((eqrule_term[]){OP_POW(((eqrule_term[]){DNC(1), DNC(2)})), DNC(1)})),
+        OP_POW(((eqrule_term[]){DNC(1), OP_ADD(((eqrule_term[]){DNC(2), DNUMBER_V(0, 1.0)}))})),
+    },
+    {   //(x^x)*(x^x) -> x^(?+?)
+        OP_MUL(((eqrule_term[]){OP_POW(((eqrule_term[]){DNC_NN(1), DNC(2)})), OP_POW(((eqrule_term[]){DNC_NN(1), DNC(3)}))})),
+        OP_POW(((eqrule_term[]){DNC_NN(1), OP_ADD(((eqrule_term[]){DNC(2), DNC(3)}))})),
+    },
+
 };
 
 #endif
