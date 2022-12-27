@@ -422,6 +422,124 @@ parse_tokens_return:
     return err;
 }
 
+
+// -----------------------
+// normalisation, simplification etc
+
+int _eqparse_equivalence(ast_t * node, const eqrule_term * term){
+    if(node==NULL) return 0;
+
+    // Check for notes
+    if(term->note){
+        if(term->note==EQRULE_NOTE_NO_NUMBER && (node->tok.tok==TOKEN_INUMBER || node->tok.tok==TOKEN_DNUMBER)) return 0;
+    }
+
+    // if term is DNC return match
+    if(term->token==TOKEN_NULL && term->type==TOKEN_TYPE_NULL) return 1;
+
+    // Check type and token, if not equal no match
+    if(node->tok.tok!=term->token || node->tok.type!=term->type) return 0;
+
+    // Check valued and if so value
+    if(term->valued && term->type==TOKEN_TYPE_VALUE){
+        if(term->token==TOKEN_INUMBER && term->ivalue!=node->tok.ivalue) return 0;
+        if(term->token==TOKEN_DNUMBER && term->dvalue!=node->tok.dvalue) return 0;
+    }
+
+    // Check for same amount of children
+    if(term->nrterms!=node->children.length) return 0;
+
+    int childmatch = 1;
+
+    for(int i=0; i<term->nrterms; i++){
+        childmatch &= _eqparse_equivalence(D_ARRAY_AT(ast_t, &node->children, term->nrterms-i-1), &term->terms[i]);
+        if(!childmatch) break;
+    }
+
+    return childmatch;
+}
+
+void _eqparse_apply_rule_visit(ast_t * node, const eqrule_term * term, d_array_t * interested){
+    if(term->interested>0){
+        d_array_insert(interested, node);
+    }
+    for(int i=0; i<term->nrterms; i++){
+        _eqparse_apply_rule_visit(D_ARRAY_AT(ast_t, &node->children, term->nrterms-i-1), &term->terms[i], interested);
+    }
+}
+
+void _eqparse_apply_rule_create(ast_t * node, const eqrule_term * term, d_array_t * interested){
+    if(node==NULL || term==NULL) return;
+    if(term->interested){
+        memcpy(node, D_ARRAY_AT(ast_t, interested, term->interested-1), sizeof(ast_t));
+        return;
+    }
+
+    token_t tok = {
+        .tok = term->token,
+        .type = term->type,
+    };
+    node->tok = tok;
+
+    if(term->valued){
+        if(term->token==TOKEN_INUMBER) tok.ivalue = term->ivalue;
+        else if(term->token==TOKEN_DNUMBER) tok.dvalue = term->dvalue;
+    }
+
+    D_ARRAY_CREATE(ast_t, &node->children);
+    for(int i=0; i<term->nrterms; i++){
+        ast_t ch;
+        _eqparse_apply_rule_create(&ch, &term->terms[term->nrterms-i-1], interested);
+        d_array_insert(&node->children, &ch);
+    }
+}
+
+int _eqparse_apply_rule(ast_t * node, const eqrule * rule){
+    if(node==NULL) return 0;
+
+    d_array_t interested;
+    D_ARRAY_CREATE(ast_t, &interested);
+    // Get all interested
+    _eqparse_apply_rule_visit(node, &rule->from, &interested);
+
+    // Build up new ast
+    ast_t new;
+    _eqparse_apply_rule_create(&new, &rule->to, &interested);
+
+    // TODO cleaup old ast
+
+    memcpy(node, &new, sizeof(ast_t));
+
+    d_array_destroy(&interested);
+    return 0;
+}
+
+int _eqparse_do_rulelist(ast_t * node, const eqrule * list){
+    if(node==NULL) return 0;
+    int matched = -1; 
+    for(int i=0; i<sizeof(eqrule_normalisation)/sizeof(eqrule); i++){
+        if(_eqparse_equivalence(node, &list[i].from)){
+            matched = i;
+            break;
+        }
+    }
+
+    // Apply rule
+    if(matched>=0) _eqparse_apply_rule(node, &list[matched]);
+    
+    int chdone = matched>=0 ? 1 : 0;
+    D_ARRAY_FOREACH_BT(ast_t, n, &node->children){
+        chdone += _eqparse_do_rulelist(n, list);
+    }
+    return chdone;
+}
+
+int _eqparse_normalize(eqparse_t * eq){
+    return _eqparse_do_rulelist(&eq->AST, &eqrule_normalisation);
+}
+
+// -----------------------
+
 void debug_print_token(token_t * token){
     switch(token->tok){
         case TOKEN_DNUMBER: printf("%.2f ", token->dvalue); break;
@@ -544,6 +662,18 @@ eqparse_t * eqparse(char * string, size_t slen, int * err){
         if(err) *err = rval;
         return eq;
     }
+
+    // Simplify
+    printf("Simplification: ");
+    int steps = 100;
+    int done = 1;
+    while(done && steps){
+        printf(".");
+        done = 0;
+        done += _eqparse_normalize(eq);
+        steps -= 1;
+    }
+    printf("\n");
 
     return eq;
 }
