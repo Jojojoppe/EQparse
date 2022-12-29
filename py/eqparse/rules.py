@@ -1,10 +1,16 @@
 from .tokenizer import TokenType
+from enum import Enum
+
+class RuleAction(Enum):
+    NONE = 0
+    DEPTH = 1
 
 class Rule:
     token = TokenType.NONE
     value = None
     important = None
     error = None
+    action = RuleAction.NONE
     def __init__(self, children:tuple, important=None):
         self.children = children
         self.important = important
@@ -15,6 +21,19 @@ class ERROR(Rule):
         self.error = msg
 
 class DNC(Rule):
+    def __init__(self, important=None):
+        Rule.__init__(self, tuple(), important)
+
+class DNC_D(Rule):
+    value = 1
+    action = RuleAction.DEPTH
+    def __init__(self, depth, important=None):
+        Rule.__init__(self, tuple(), important)
+        self.value = depth
+
+class OP(Rule):
+    token = TokenType.OPERATOR
+    value = None
     def __init__(self, important=None):
         Rule.__init__(self, tuple(), important)
 

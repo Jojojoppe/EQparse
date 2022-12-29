@@ -41,13 +41,14 @@ constants = {
 
 from .rules import *
 rules = [
+
     # Zero rules
     # ----------
-    # 0+a -> a
-    (ADD((VALUE_V(0), DNC(1))),
+    # a+0 -> a
+    (ADD((DNC(1), VALUE_V(0))),
      DNC(1)),
-    # 0*a -> 0
-    (MUL((VALUE_V(0), DNC())),
+    # a*0 -> 0
+    (MUL((DNC(), VALUE_V(0))),
      VALUE_V(0)),
     # a^0 -> 1
     (POW((DNC(), VALUE_V(0))),
@@ -61,10 +62,11 @@ rules = [
     # a/0 -> ERROR
     (DIV((DNC(), VALUE_V(0))),
      ERROR("Division by zero")),
+
     # Unity rules
     # -----------
-    # 1*a -> a
-    (MUL((VALUE_V(1), DNC(1))),
+    # a*1 -> a
+    (MUL((DNC(1), VALUE_V(1))),
     DNC(1)),
     # a+a -> 2*a
     (ADD((DNC(1), DNC(1))),
@@ -78,29 +80,43 @@ rules = [
     # a^1 -> a
     (POW((DNC(1), VALUE_V(1))),
      DNC(1)),
+
+    # Basic inverse to normal rules
+    # -----------------------------
+    # a-b -> a+(b*-1)
+    (SUB((DNC(1), DNC(2))),
+     ADD((DNC(1), MUL((DNC(2), VALUE_V(-1)))))),
+
     # Tree rules
     # ----------
+    # (a+Nb)+Nc -> a+(Nb+Nc)
+    (ADD((ADD((DNC(1), VALUE(2))), VALUE(3))),
+     ADD((DNC(1), ADD((VALUE(2), VALUE(3)))))),
+    # (a*Nb)*Nc -> a*(Nb*Nc)
+    (MUL((MUL((DNC(1), VALUE(2))), VALUE(3))),
+     MUL((DNC(1), MUL((VALUE(2), VALUE(3)))))),
     # (a+b)+b -> a+(2*b)
     (ADD((ADD((DNC(1), DNC(2))), DNC(2))),
      ADD((DNC(1), MUL((VALUE_V(2), DNC(2)))))),
-    # (a+Na)+Nb -> a+(Na+Nb)
-    (ADD((ADD((DNC(1), VALUE(2))), VALUE(3))),
-     ADD((DNC(1), ADD((VALUE(2), VALUE(3)))))),
-    # (a+Na)+b -> (a+b)+Na
-    (ADD((ADD((DNC(1), VALUE(2))), DNC(3))),
-     ADD((VALUE(2), ADD((DNC(1), DNC(3)))))),
-    # (a*b)+b -> (a+1)*b
-    (ADD((MUL((DNC(1), DNC(2))), DNC(2))),
-     MUL((ADD((DNC(1), VALUE_V(1))), DNC(2)))),
-    # (a*b)+(c*b) -> (a+c)*b
-    (ADD((MUL((DNC(1), DNC(2))), MUL((DNC(3), DNC(2))))),
-    MUL((ADD((DNC(1), DNC(3))), DNC(2)))),
-    # (a*b)+(a*c) -> (a+b)*c
+    # (a*b)+(a*c) -> (b+c)*a
     (ADD((MUL((DNC(1), DNC(2))), MUL((DNC(1), DNC(3))))),
     MUL((ADD((DNC(2), DNC(3))), DNC(1)))),
-    # (a*b)*b -> (b*b)*a
-    (MUL((MUL((DNC(1), DNC(2))), DNC(2))),
-     MUL((MUL((DNC(2), DNC(2))), DNC(1) ))),
+    # (a+b)+(b*c) -> a+(b*(c+1))
+    (ADD((ADD((DNC(1), DNC(2))), MUL((DNC(2), DNC(3))))),
+     ADD((DNC(1), MUL((DNC(2), ADD((DNC(3), VALUE_V(1)))))))),
+    # (a+b)*Nc -> (a*Nc)+(b*Nc) -> sum of products
+    (MUL((ADD((DNC(1), DNC(2))), VALUE(3))),
+     ADD((MUL((DNC(1), VALUE(3))), MUL((DNC(2), VALUE(3)))))),
+    # (a+(b*Nc))+(b*Nd) -> a+(b*(Nc+Nd))
+    (ADD((ADD((DNC(1), MUL((DNC(2), VALUE(3))))), MUL((DNC(2), VALUE(4))))),
+     ADD((DNC(1), MUL((DNC(2), ADD((VALUE(3), VALUE(4)))))))),
+    # ((b*Nc)+a)+(b*Nd) -> a+(b*(Nc+Nd))
+    (ADD((ADD((MUL((DNC(2), VALUE(3))), DNC(1))), MUL((DNC(2), VALUE(4))))),
+     ADD((DNC(1), MUL((DNC(2), ADD((VALUE(3), VALUE(4)))))))),
+    # (a*Nb)+a -> a*(Nb+1)
+    (ADD((MUL((DNC(1), VALUE(2))), DNC(1))),
+     MUL((DNC(1), ADD((VALUE(2), VALUE_V(1)))))),
+
     # Function rules
     # --------------
     # ddt(int(a, b)) -> a
