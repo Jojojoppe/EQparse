@@ -4,6 +4,8 @@ from enum import Enum
 class RuleAction(Enum):
     NONE = 0
     DEPTH = 1
+    NOVALUE = 2
+    NOONE = 3
 
 class Rule:
     token = TokenType.NONE
@@ -21,6 +23,11 @@ class ERROR(Rule):
         self.error = msg
 
 class DNC(Rule):
+    def __init__(self, important=None):
+        Rule.__init__(self, tuple(), important)
+
+class DNC_NV(Rule):
+    action = RuleAction.NOVALUE
     def __init__(self, important=None):
         Rule.__init__(self, tuple(), important)
 
@@ -71,6 +78,12 @@ class MOD(Rule):
 class VALUE(Rule):
     token = TokenType.VALUE
     value = None
+    def __init__(self, important=None):
+        Rule.__init__(self, tuple(), important)
+class VALUE_NO(Rule):
+    token = TokenType.VALUE
+    value = None
+    action = RuleAction.NOONE
     def __init__(self, important=None):
         Rule.__init__(self, tuple(), important)
 class VALUE_V(Rule):

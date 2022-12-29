@@ -75,9 +75,9 @@ class AstNode:
     def isFunction(self):
         return self.tokenType==TokenType.FUNCTION
 
-    def genPNG(self, output:str):
+    def genPNG(self, output:str, rootlabel="root"):
         graph = pydot.Dot('ast', graph_type='digraph')
-        graph.add_node(pydot.Node("root"))
+        graph.add_node(pydot.Node("root", label=rootlabel))
         
         def visit(node:AstNode, path:str="rt", i:int=0):
             if node.tokenType in [TokenType.VALUE, TokenType.VARIABLE]:
@@ -206,6 +206,12 @@ class AstNode:
                     if node.depth()==rule.value:
                         return True
                     else:
+                        return False
+                elif rule.action==RuleAction.NOVALUE:
+                    if node.tokenType==TokenType.VALUE:
+                        return False
+                elif rule.action==RuleAction.NOONE:
+                    if node.value==1.0:
                         return False
                 return True
             # If not the same type no match

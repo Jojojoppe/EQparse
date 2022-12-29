@@ -17,7 +17,7 @@ class Equation:
 
     def genPNG(self, output:str):
         print("generating PNG from", self)
-        self.ast.genPNG(output)
+        self.ast.genPNG(output, self.equation)
 
     def simplify(self):
         self.ast.simplify()

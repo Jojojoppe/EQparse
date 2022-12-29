@@ -86,6 +86,9 @@ rules = [
     # a-b -> a+(b*-1)
     (SUB((DNC(1), DNC(2))),
      ADD((DNC(1), MUL((DNC(2), VALUE_V(-1)))))),
+    # a/b -> a*(1/b)
+    # (DIV((DNC_NV(1), DNC(2))),
+     # MUL((DNC(1), DIV((VALUE_V(1), DNC(2)))))),
 
     # Tree rules
     # ----------
@@ -116,6 +119,24 @@ rules = [
     # (a*Nb)+a -> a*(Nb+1)
     (ADD((MUL((DNC(1), VALUE(2))), DNC(1))),
      MUL((DNC(1), ADD((VALUE(2), VALUE_V(1)))))),
+
+    # Division rules
+    # --------------
+    # (a*Nb)/Nc -> a*(Nb/Nc)
+    (DIV((MUL((DNC(1), VALUE(2))), VALUE(3))),
+     MUL((DNC(1), DIV((VALUE(2), VALUE(3)))))),
+    # (a*Nb)/(c*Nd) -> (a*(Nb/Nd))/c
+    (DIV((MUL((DNC(1), VALUE(2))), MUL((DNC(3), VALUE(4))))),
+     DIV((MUL((DNC(1), DIV((VALUE(2), VALUE(4))))), DNC(3)))),
+    # a/(b*Nc) -> (a/b)*(1/Nc)
+    (DIV((DNC(1), MUL((DNC(2), VALUE(3))))),
+     MUL((DIV((DNC(1), DNC(2))), DIV((VALUE_V(1), VALUE(3)))))),
+    # (a*Nb)/c -> (a/c)*Nb
+    (DIV((MUL((DNC(1), VALUE(2))), DNC(3))),
+     MUL((DIV((DNC(1), DNC(3))), VALUE(2)))),
+    # (a+Nb)/C -> (a/C)+(Nb/C)
+    (DIV((ADD((DNC(1), VALUE(2))), DNC_NV(3))),
+     ADD((DIV((DNC(1), DNC_NV(3))), DIV((VALUE(2), DNC_NV(3)))))),
 
     # Function rules
     # --------------
