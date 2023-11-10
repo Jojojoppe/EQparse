@@ -33,7 +33,7 @@ def tokenize(input: str) -> List[Token]:
         # Check if number
         if ord(ch) >= ord('0') and ord(ch) <= ord('9'):
             chType = 'number'
-        elif ch in ['+', '/', '*', '%', '^']:
+        elif ch in ['+', '/', '*', '%', '^', '=']:
             chType = 'operator'
         elif ch == '-':
             chType = 'operator.minus'
@@ -155,6 +155,15 @@ def tokenize(input: str) -> List[Token]:
                 decorators.clear()
             tokenType = 'string'
             tokenValue += ch
+        # Punctuation outside numbers as commas
+        elif chType == 'punctuation':
+            if (tokenType != ''):
+                tokens.append(Token(tokenValue, tokenType))
+            # Emit operator token
+            tokens.append(Token(',', 'punctuation'))
+            tokenValue = ''
+            tokenType = ''
+            decorators.clear()
 
         # Anything else is not allowed
         else:
