@@ -165,6 +165,13 @@ def tokenize(input: str) -> List[Token]:
             tokenType = ''
             decorators.clear()
 
+        # ignore whitespace and emit token if needed
+        elif chType == 'whitespace':
+            if tokenType != 'string' and tokenType != '':
+                tokens.append(Token(tokenValue, tokenType))
+                tokenValue = ''
+                tokenType = ''
+                decorators.clear()
         # Anything else is not allowed
         else:
             raise TokenizerException(
