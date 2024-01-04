@@ -47,5 +47,7 @@ def main():
 
     check(odes.parse(odes.tokenize('- sin(a + b)')), '0 a b + sin -')
 
+    print(odes.parse(odes.tokenize('2*pi + int(c, phi)')))
+
 if __name__=='__main__':
     main()
