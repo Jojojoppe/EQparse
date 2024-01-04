@@ -1,3 +1,5 @@
+''' Simple math tokenizer
+'''
 from typing import *
 
 class TokenizerException(Exception):
@@ -6,20 +8,22 @@ class TokenizerException(Exception):
         self.errors = errors
 
 class Token():
-    def __init__(self, value: str, tpe: str):
+    def __init__(self, value: str, tpe: str, location: int):
         self.value: str = value
         self.tpe: str = tpe
+        self.location: int = location
 
     def __str__(self):
         return str(self.value)
 
     def __repr__(self):
-        return self.tpe+'('+str(self)+')'
+        return self.tpe+'('+str(self)+')@' + str(self.location)
 
 def tokenize(input: str) -> List[Token]:
     tokens: List[Token] = []
 
     index: int = 0
+    startIndex: int = 0
     tokenType: str = ''
     tokenValue: str = ''
     prevChType: str = ''
@@ -50,6 +54,9 @@ def tokenize(input: str) -> List[Token]:
             chType = ''
 
         # print(ch, chType, tokenType, tokenValue, decorators)
+
+        if tokenType == '':
+            startIndex = index
 
         # start of an int
         if tokenType == '' and chType == 'number':
@@ -95,26 +102,29 @@ def tokenize(input: str) -> List[Token]:
                 tokenType = 'float'
                 decorators.append('float')
                 # EOT
-                tokens.append(Token(tokenValue, tokenType))
+                tokens.append(Token(tokenValue, tokenType, startIndex))
                 tokenValue = ''
                 tokenType = ''
+                startIndex = index
                 decorators.clear()
         # whitespace after int or float [EOT]
         elif tokenType in ['int', 'float'] and chType == 'whitespace':
             # EOT
-            tokens.append(Token(tokenValue, tokenType))
+            tokens.append(Token(tokenValue, tokenType, startIndex))
             tokenValue = ''
             tokenType = ''
+            startIndex = index
             decorators.clear()
         # operator
         elif chType.startswith('operator'):
             # EOT
             if (tokenType != ''):
-                tokens.append(Token(tokenValue, tokenType))
+                tokens.append(Token(tokenValue, tokenType, startIndex))
             # Emit operator token
-            tokens.append(Token(ch, 'operator'))
+            tokens.append(Token(ch, 'operator', index))
             tokenValue = ''
             tokenType = ''
+            startIndex = index
             decorators.clear()
         # whitespace after nothing
         elif tokenType == '' and chType == 'whitespace':
@@ -122,52 +132,57 @@ def tokenize(input: str) -> List[Token]:
         # whitespace after int or float
         elif tokenType in ['int', 'float'] and chType == 'whitespace':
             # EOT
-            tokens.append(Token(tokenValue, tokenType))
+            tokens.append(Token(tokenValue, tokenType, startIndex))
             tokenValue = ''
             tokenType = ''
+            startIndex = index
             decorators.clear()
         # Braces
         elif chType == 'braces':
             if ch == '(':
                 # EOT
                 if (tokenType != ''):
-                    tokens.append(Token(tokenValue, tokenType))
+                    tokens.append(Token(tokenValue, tokenType, startIndex))
                 # Emit operator token
-                tokens.append(Token(ch, 'brace.open'))
+                tokens.append(Token(ch, 'brace.open', index))
             else:
                 # EOT
                 if (tokenType != ''):
-                    tokens.append(Token(tokenValue, tokenType))
+                    tokens.append(Token(tokenValue, tokenType, startIndex))
                 # Emit operator token
-                tokens.append(Token(ch, 'brace.close'))
+                tokens.append(Token(ch, 'brace.close', index))
             tokenValue = ''
             tokenType = ''
+            startIndex = index
             decorators.clear()
         # Letters or number after string
         elif chType.startswith('letter') or (chType == 'number' and tokenType == 'string'):
             if tokenType != 'string' and tokenType != '':
-                tokens.append(Token(tokenValue, tokenType))
+                tokens.append(Token(tokenValue, tokenType, startIndex))
                 tokenValue = ''
                 tokenType = ''
+                startIndex = index
                 decorators.clear()
             tokenType = 'string'
             tokenValue += ch
         # Punctuation outside numbers as commas
         elif chType == 'punctuation':
             if (tokenType != ''):
-                tokens.append(Token(tokenValue, tokenType))
+                tokens.append(Token(tokenValue, tokenType, startIndex))
             # Emit operator token
-            tokens.append(Token(',', 'punctuation'))
+            tokens.append(Token(',', 'punctuation', index))
             tokenValue = ''
             tokenType = ''
+            startIndex = index
             decorators.clear()
 
         # ignore whitespace and emit token if needed
         elif chType == 'whitespace':
             if tokenType != 'string' and tokenType != '':
-                tokens.append(Token(tokenValue, tokenType))
+                tokens.append(Token(tokenValue, tokenType, startIndex))
                 tokenValue = ''
                 tokenType = ''
+                startIndex = index
                 decorators.clear()
         # Anything else is not allowed
         else:
@@ -178,7 +193,7 @@ def tokenize(input: str) -> List[Token]:
         prevChType = chType
     # Last token if there is
     if tokenType != '':
-        tokens.append(Token(tokenValue, tokenType))
+        tokens.append(Token(tokenValue, tokenType, startIndex))
 
     return tokens
 

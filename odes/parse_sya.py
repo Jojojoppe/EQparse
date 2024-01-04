@@ -1,3 +1,6 @@
+''' Simple shunting yard math parser generating RPN notation
+Can handle unary minus
+'''
 from typing import Dict, List, Tuple
 from .token import Token
 
@@ -42,13 +45,13 @@ def parse(tokens: List[Token]):
         # number
         elif token.tpe in ['int', 'float']:
             if inversed:
-                ouqueue.append(Token('0', 'int'))
+                ouqueue.append(Token('0', 'int', -1))
                 inversed = False
             ouqueue.append(token)
         # variable/constant (-> number)
         elif token.tpe == 'string':
             if inversed:
-                ouqueue.append(Token('0', 'int'))
+                ouqueue.append(Token('0', 'int', -1))
                 inversed = False
             ouqueue.append(token)
         # (
@@ -70,7 +73,7 @@ def parse(tokens: List[Token]):
             assert token.value in operators, 'Unknown operator found'
             # Check for double unary minus
             if token.value=='-' and len(opstack)>0 and opstack[-1].tpe == 'operator' and opstack[-1].value == '-' and inversed:
-                ouqueue.append(Token('0', 'int'))
+                ouqueue.append(Token('0', 'int', -1))
                 opstack.append(token)
                 inversed = False
                 continue
