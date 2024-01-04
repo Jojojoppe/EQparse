@@ -1,12 +1,9 @@
-#!/usr/bin/env python3
 from typing import *
-
 
 class TokenizerException(Exception):
     def __init__(self, message, errors):
         super().__init__(message)
         self.errors = errors
-
 
 class Token():
     def __init__(self, value: str, tpe: str):
@@ -185,10 +182,3 @@ def tokenize(input: str) -> List[Token]:
 
     return tokens
 
-def main():
-    print(tokenize("-13e-5+7896 - 3.25 / 75f ^ 3.1415e18f"))
-    print(tokenize("8*sin(2*pi*t)-12.36e-8"))
-
-
-if __name__ == '__main__':
-    main()
